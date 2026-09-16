@@ -1,0 +1,175 @@
+{
+  "id": "jarvisEod0000001",
+  "name": "Jarvis - end of day report",
+  "nodes": [
+    {
+      "id": "61e28569-b407-59fe-9b9a-0c89c56c0741",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -260
+      ],
+      "parameters": {
+        "content": "## End of day, 18:00 weekdays\nTomorrow's calendar -> `python -m jarvis.eod_report` (done today, still open, tomorrow, tickets, paper close) -> mailed to yourself.",
+        "width": 420,
+        "height": 150,
+        "color": 4
+      }
+    },
+    {
+      "id": "bf719c77-1397-5fe0-a60a-c5a348bab512",
+      "name": "18:00 weekdays",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "305fad3d-747e-5085-b431-5bdcec500733",
+      "name": "Tomorrow's calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -340,
+        0
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $now.plus({days: 1}).startOf('day').toISO() }}",
+        "timeMax": "={{ $now.plus({days: 1}).endOf('day').toISO() }}",
+        "options": {
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "4e0af68f-e925-5192-be97-cf1aa6e16943",
+      "name": "Save tomorrow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Write what the Tomorrow's calendar node returned to inbox/tomorrow_calendar.json for the Python side.\nconst fs = require('fs');\nconst items = $('Tomorrow's calendar').all().map(i => i.json);\nconst rows = items.map(m => ({ summary: m.summary, start: m.start?.dateTime || m.start?.date, end: m.end?.dateTime || m.end?.date, location: m.location, attendees: (m.attendees || []).map(a => a.email), description: m.description }));\nfs.mkdirSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox', { recursive: true });\nfs.writeFileSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox/tomorrow_calendar.json', JSON.stringify(rows, null, 1));\nreturn [{ json: { written: 'tomorrow_calendar.json', n: rows.length } }];"
+      }
+    },
+    {
+      "id": "4092c572-1f2d-5314-9cf4-3396347cdf2d",
+      "name": "Build report (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        100,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.eod_report\""
+      }
+    },
+    {
+      "id": "2903a5d8-099b-5f64-9c41-7b8a86a66c85",
+      "name": "Mail it to me",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        0
+      ],
+      "parameters": {
+        "sendTo": "me@example.com",
+        "subject": "=End of day {{ $today.toFormat('ccc d LLL') }}",
+        "emailType": "text",
+        "message": "={{ $json.stdout }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "18:00 weekdays": {
+      "main": [
+        [
+          {
+            "node": "Tomorrow's calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tomorrow's calendar": {
+      "main": [
+        [
+          {
+            "node": "Save tomorrow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save tomorrow": {
+      "main": [
+        [
+          {
+            "node": "Build report (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build report (Python)": {
+      "main": [
+        [
+          {
+            "node": "Mail it to me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {},
+  "tags": []
+}

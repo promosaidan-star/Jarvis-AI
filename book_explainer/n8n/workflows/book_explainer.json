@@ -1,0 +1,437 @@
+{
+  "id": "bookExplainer001",
+  "name": "Book Explainer - writer, verifier, guard",
+  "nodes": [
+    {
+      "id": "9f304b1a-3b2a-5977-9e0e-e7964f075e5b",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -300
+      ],
+      "parameters": {
+        "content": "## Book Explainer (read-only)\nTurns the paper book's decomposition JSON into one plain-English card per position.\n\n**Writer LLM -> Verifier LLM -> deterministic Python guard.**\n\nThe LLMs see only glossary + batch JSON: no prices, no returns, no account, no orders.",
+        "width": 420,
+        "height": 260,
+        "color": 4
+      }
+    },
+    {
+      "id": "33eca75c-3c96-56b2-a2dc-911432ccaf9a",
+      "name": "Run full book (manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "95d3c669-2e4a-515e-bbb5-ca2bda509349",
+      "name": "POST /explain",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -460,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "explain",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "book-explainer-explain"
+    },
+    {
+      "id": "6a4c4503-ced1-5818-b444-fb4e5e216f0a",
+      "name": "Load run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Load run: read the deterministic decomposition (glossary + batches) and set up an output dir.\n// Input: webhook body {symbol?: \"ABBV\", run?: \"run_2026-09-11\", batches?: [0,1]} or manual trigger (full run).\n// The LLM never sees prices, returns or the account: only glossary + batch JSON go forward.\nconst fs = require('fs');\nconst path = require('path');\n\nconst ROOT = 'C:/Users/ajwal/Documents/ai_agent_eval';\nconst MODEL = 'gemini-3.5-flash-lite';\nconst ADAPTER = `\n\n## Runtime adapter (n8n)\nYou have no file tools in this runtime. The full contents of the files named above are\ninlined in the user message between \"=== <filename> ===\" markers; treat them as the files.\nWhere the prompt says to write output to a file, return that JSON object as your ENTIRE\nresponse instead (no prose, no code fences). Ignore any instruction to reply with a count.`;\n\nconst body = ($input.first().json.body) || {};\nconst srcRun = body.run || 'run_2026-09-11';\nconst srcDir = path.join(ROOT, srcRun);\nconst glossary = JSON.parse(fs.readFileSync(path.join(srcDir, 'glossary.json'), 'utf8'));\nconst writerPrompt = fs.readFileSync(path.join(srcDir, 'prompts', 'writer_prompt.md'), 'utf8');\nconst verifierPrompt = fs.readFileSync(path.join(srcDir, 'prompts', 'verifier_prompt.md'), 'utf8');\n\nlet batches = [];\nfor (let k = 0; fs.existsSync(path.join(srcDir, `batch_${k}.json`)); k++) {\n  batches.push(JSON.parse(fs.readFileSync(path.join(srcDir, `batch_${k}.json`), 'utf8')).positions);\n}\nif (!batches.length) throw new Error(`no batch_k.json in ${srcDir}`);\n\nconst symbol = body.symbol ? String(body.symbol).toUpperCase().trim() : null;\nif (symbol) {\n  const pos = batches.flat().find(p => p.symbol === symbol);\n  if (!pos) {\n    return [{ json: { refused: true, message: `${symbol} is not a position in the ${glossary.asof} book.` } }];\n  }\n  batches = [[pos]];\n} else if (Array.isArray(body.batches)) {\n  batches = body.batches.map(k => batches[k]);\n}\n\nconst stamp = new Date().toISOString().replace(/[:.]/g, '-');\nconst outDir = path.join(ROOT, 'runs', `n8n_${glossary.asof}_${symbol || 'full'}_${stamp}`).replace(/\\\\/g, '/');\nfs.mkdirSync(outDir, { recursive: true });\nfs.copyFileSync(path.join(srcDir, 'glossary.json'), path.join(outDir, 'glossary.json'));\n\nreturn batches.map((positions, k) => {\n  fs.writeFileSync(path.join(outDir, `batch_${k}.json`), JSON.stringify({ positions }));\n  // Only this batch's company backgrounds are inlined (the rest of the glossary is unchanged).\n  const syms = new Set(positions.map(p => p.symbol));\n  const g = { ...glossary, backgrounds: Object.fromEntries(Object.entries(glossary.backgrounds).filter(([s]) => syms.has(s))) };\n  const files = `=== glossary.json ===\\n${JSON.stringify(g)}\\n\\n=== batch_${k}.json ===\\n${JSON.stringify({ positions })}`;\n  return {\n    json: {\n      refused: false, k, outDir, model: MODEL, asof: glossary.asof, symbols: [...syms],\n      writerSystem: writerPrompt.replaceAll('{S}', '.').replaceAll('{k}', String(k)) + ADAPTER,\n      verifierSystem: verifierPrompt.replaceAll('{S}', '.').replaceAll('{k}', String(k)) + ADAPTER,\n      files, glossaryForVerifier: JSON.stringify(g), batchJson: JSON.stringify({ positions }),\n      t_writer_start: Date.now(),\n    },\n  };\n});\n"
+      }
+    },
+    {
+      "id": "d63dfa46-742e-5875-b1de-f73d569b233a",
+      "name": "Symbol in book?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.refused }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fbc0bf8c-8ccb-5c16-8e5d-c2d739346856",
+      "name": "Loop over batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "7c5591d8-a84e-54e1-aec6-16889430b501",
+      "name": "Writer (Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ systemInstruction: { parts: [{ text: $json.writerSystem }] }, contents: [{ role: 'user', parts: [{ text: $json.files }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.2 } }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-book-explainer",
+          "name": "Gemini (Book Explainer)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "6b78db59-1d52-5e88-8456-c00f24f49bf5",
+      "name": "Parse draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Parse writer output -> draft_k.json; build the verifier request for the same batch.\nconst fs = require('fs');\nconst out = [];\nfor (const item of $input.all()) {\n  const req = $('Loop over batches').item.json;   // the batch this response belongs to\n  const r = item.json;\n  const text = (r.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');\n  let draft;\n  try {\n    draft = JSON.parse(text.replace(/^```(json)?\\s*|\\s*```$/g, ''));\n  } catch (e) {\n    throw new Error(`writer returned non-JSON for batch ${req.k}: ${text.slice(0, 300)}`);\n  }\n  if (Array.isArray(draft)) draft = { explanations: draft };\n  fs.writeFileSync(`${req.outDir}/draft_${req.k}.json`, JSON.stringify(draft, null, 1));\n  const u = r.usageMetadata || {};\n  out.push({\n    json: {\n      ...req,\n      draftJson: JSON.stringify(draft),\n      writer: { ms: Date.now() - req.t_writer_start, in_tokens: u.promptTokenCount || 0,\n                out_tokens: (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0), n_cards: (draft.explanations || []).length },\n      verifierUser: `=== glossary.json ===\\n${req.glossaryForVerifier}\\n\\n=== batch_${req.k}.json ===\\n${req.batchJson}\\n\\n=== draft_${req.k}.json ===\\n${JSON.stringify(draft)}`,\n      t_verifier_start: Date.now(),\n    },\n  });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "c76b6704-de60-5111-8e6f-5bbe7a1bec11",
+      "name": "Verifier (Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        920,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ systemInstruction: { parts: [{ text: $json.verifierSystem }] }, contents: [{ role: 'user', parts: [{ text: $json.verifierUser }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.2 } }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-book-explainer",
+          "name": "Gemini (Book Explainer)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "08431710-8102-5522-b84c-8125eae67623",
+      "name": "Parse verified",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Parse verifier output -> verified_k.json (the guard node reads it from disk next).\nconst fs = require('fs');\nconst out = [];\nfor (const item of $input.all()) {\n  const req = $('Parse draft').item.json;\n  const r = item.json;\n  const text = (r.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');\n  let ver;\n  try {\n    ver = JSON.parse(text.replace(/^```(json)?\\s*|\\s*```$/g, ''));\n  } catch (e) {\n    throw new Error(`verifier returned non-JSON for batch ${req.k}: ${text.slice(0, 300)}`);\n  }\n  if (Array.isArray(ver)) ver = { results: ver };\n  fs.writeFileSync(`${req.outDir}/verified_${req.k}.json`, JSON.stringify(ver, null, 1));\n  const u = r.usageMetadata || {};\n  const results = ver.results || [];\n  out.push({\n    json: {\n      k: req.k, outDir: req.outDir, asof: req.asof, model: req.model, symbols: req.symbols,\n      writer: req.writer,\n      verifier: { ms: Date.now() - req.t_verifier_start, in_tokens: u.promptTokenCount || 0,\n                  out_tokens: (u.candidatesTokenCount || 0) + (u.thoughtsTokenCount || 0),\n                  n_checked: results.length, n_corrected: results.filter(x => x.ok === false).length },\n    },\n  });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "38ea8023-4668-529c-9236-448d5400559f",
+      "name": "Deterministic guard (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        100
+      ],
+      "parameters": {
+        "command": "=cmd /c \"set PYTHONIOENCODING=utf-8:replace&& python C:/Users/ajwal/Documents/ai_agent_eval/eval/guard_cli.py {{ $json.outDir }} {{ $json.k }}\""
+      }
+    },
+    {
+      "id": "cb66cfab-3ee7-5803-b350-e7852337c637",
+      "name": "Attach guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Attach the deterministic guard's verdict (stdout of guard_cli.py) to the batch record.\nreturn $input.all().map(item => {\n  const prev = $('Parse verified').item.json;\n  let guard;\n  try {\n    guard = JSON.parse(item.json.stdout);\n  } catch (e) {\n    guard = { error: `guard failed: ${(item.json.stderr || item.json.stdout || '').slice(0, 400)}`, cards: {}, n_pass: 0, n: 0 };\n  }\n  return { json: { ...prev, guard } };\n});\n"
+      }
+    },
+    {
+      "id": "6a5a182c-28da-5c6e-a5bf-4606f73f17a1",
+      "name": "Merge + write explanations.json",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -160
+      ],
+      "parameters": {
+        "jsCode": "// Merge every batch into explanations.json (+ run_metrics.json) and return the cards.\n// A card's text is the verifier's corrected text; guard failures are attached, never hidden.\nconst fs = require('fs');\nconst batches = $input.all().map(i => i.json);\nif (!batches.length) return [{ json: { error: 'no batches completed' } }];\nconst outDir = batches[0].outDir;\nconst explanations = {};\nconst cards = [];\nfor (const b of batches) {\n  const ver = JSON.parse(fs.readFileSync(`${outDir}/verified_${b.k}.json`, 'utf8')).results || [];\n  const pos = JSON.parse(fs.readFileSync(`${outDir}/batch_${b.k}.json`, 'utf8')).positions;\n  for (const v of ver) {\n    const p = pos.find(x => x.symbol === v.symbol) || {};\n    const g = b.guard.cards?.[v.symbol] || { pass: false, fails: [{ check: 'guard_missing' }] };\n    const card = {\n      symbol: v.symbol, side: p.position > 0 ? 'long' : 'short', target_dollars: p.target_dollars,\n      entry_date: p.entry_date, agg_z: p.entry?.agg_z, n_sources: p.entry?.n_sources,\n      headline: v.corrected_headline, body: v.corrected_body, drivers: v.drivers, dissenters: v.dissenters,\n      status_today: v.status_today, verify_problems: v.problems || [], verifier_ok: v.ok,\n      guard_pass: g.pass, guard_fails: g.fails, company_fact_unsupported: g.company_fact_unsupported || [],\n    };\n    explanations[v.symbol] = card;\n    cards.push(card);\n  }\n}\nconst n = cards.length || 1;\nconst sum = (f) => batches.reduce((a, b) => a + f(b), 0);\nconst metrics = {\n  asof: batches[0].asof, model: batches[0].model, outDir, positions: cards.length,\n  corrected_by_verifier: cards.filter(c => c.verifier_ok === false).length,\n  guard_pass: cards.filter(c => c.guard_pass).length,\n  tokens_in: sum(b => b.writer.in_tokens + b.verifier.in_tokens),\n  tokens_out: sum(b => b.writer.out_tokens + b.verifier.out_tokens),\n  seconds_llm: sum(b => b.writer.ms + b.verifier.ms) / 1000,\n  per_position: {\n    tokens_in: Math.round(sum(b => b.writer.in_tokens + b.verifier.in_tokens) / n),\n    tokens_out: Math.round(sum(b => b.writer.out_tokens + b.verifier.out_tokens) / n),\n    seconds: +(sum(b => b.writer.ms + b.verifier.ms) / 1000 / n).toFixed(2),\n  },\n  batches: batches.map(b => ({ k: b.k, symbols: b.symbols, writer: b.writer, verifier: b.verifier,\n                               guard_pass: b.guard.n_pass, guard_n: b.guard.n, guard_error: b.guard.error })),\n};\nfs.writeFileSync(`${outDir}/explanations.json`, JSON.stringify(explanations, null, 1));\nfs.writeFileSync(`${outDir}/run_metrics.json`, JSON.stringify(metrics, null, 1));\nfs.writeFileSync('C:/Users/ajwal/Documents/ai_agent_eval/runs/LATEST.txt', outDir);\nreturn [{ json: { metrics, cards } }];\n"
+      }
+    },
+    {
+      "id": "7bc82358-1dd7-5979-9a40-57681cc1fdc9",
+      "name": "Respond: cards",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        -160
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      }
+    },
+    {
+      "id": "3802f062-ccec-5b76-951f-31c5245973f3",
+      "name": "Respond: not in book",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        240,
+        260
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 404
+        }
+      }
+    },
+    {
+      "id": "d8db3f22-150d-52e6-8315-b1d00528a3af",
+      "name": "Guard note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        -140
+      ],
+      "parameters": {
+        "content": "### Deterministic guard\n`eval/guard_cli.py` re-checks every percentile, contribution, agg_z, dollar figure, date, status_today rule, driver order, headline quotes and efficacy claims against the JSON. Failures are attached to the card, never hidden.",
+        "width": 420,
+        "height": 200,
+        "color": 5
+      }
+    }
+  ],
+  "connections": {
+    "Run full book (manual)": {
+      "main": [
+        [
+          {
+            "node": "Load run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /explain": {
+      "main": [
+        [
+          {
+            "node": "Load run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load run": {
+      "main": [
+        [
+          {
+            "node": "Symbol in book?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Symbol in book?": {
+      "main": [
+        [
+          {
+            "node": "Loop over batches",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: not in book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop over batches": {
+      "main": [
+        [
+          {
+            "node": "Merge + write explanations.json",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Writer (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writer (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Parse draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse draft": {
+      "main": [
+        [
+          {
+            "node": "Verifier (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifier (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Parse verified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse verified": {
+      "main": [
+        [
+          {
+            "node": "Deterministic guard (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic guard (Python)": {
+      "main": [
+        [
+          {
+            "node": "Attach guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach guard": {
+      "main": [
+        [
+          {
+            "node": "Loop over batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge + write explanations.json": {
+      "main": [
+        [
+          {
+            "node": "Respond: cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

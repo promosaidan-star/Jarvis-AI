@@ -1,0 +1,236 @@
+{
+  "id": "jarvisMorning001",
+  "name": "Jarvis - morning brief",
+  "nodes": [
+    {
+      "id": "61e28569-b407-59fe-9b9a-0c89c56c0741",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -260
+      ],
+      "parameters": {
+        "content": "## Morning brief, 07:00 weekdays\nCalendar + unread mail -> JSON files -> `python -m jarvis.morning_brief` (weather, to-dos, tickets, paper portfolio) -> mailed to yourself.\n\nSet your address in the last node.",
+        "width": 420,
+        "height": 170,
+        "color": 4
+      }
+    },
+    {
+      "id": "11ddac09-47bd-58f6-989b-c427c22522fd",
+      "name": "07:00 weekdays",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "92ca8c01-d25c-571f-b7c8-514210f32012",
+      "name": "Today's calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -340,
+        0
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $now.plus({days: 0}).startOf('day').toISO() }}",
+        "timeMax": "={{ $now.plus({days: 0}).endOf('day').toISO() }}",
+        "options": {
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "829001f6-e1af-548c-9cdf-7dcec7718cf6",
+      "name": "Save calendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Write what the Today's calendar node returned to inbox/today_calendar.json for the Python side.\nconst fs = require('fs');\nconst items = $('Today's calendar').all().map(i => i.json);\nconst rows = items.map(m => ({ summary: m.summary, start: m.start?.dateTime || m.start?.date, end: m.end?.dateTime || m.end?.date, location: m.location, attendees: (m.attendees || []).map(a => a.email), description: m.description }));\nfs.mkdirSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox', { recursive: true });\nfs.writeFileSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox/today_calendar.json', JSON.stringify(rows, null, 1));\nreturn [{ json: { written: 'today_calendar.json', n: rows.length } }];"
+      }
+    },
+    {
+      "id": "b1a28fd1-eb14-567d-98aa-d8b5e05040f4",
+      "name": "Unread mail (24h)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        0
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 40,
+        "simple": true,
+        "filters": {
+          "readStatus": "unread",
+          "receivedAfter": "={{ $now.minus({hours: 24}).toISO() }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "5689eedf-f256-509d-8f67-6fb38488f6a7",
+      "name": "Save inbox",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Write what the Unread mail (24h) node returned to inbox/today_inbox.json for the Python side.\nconst fs = require('fs');\nconst items = $('Unread mail (24h)').all().map(i => i.json);\nconst rows = items.map(m => ({ id: m.id, threadId: m.threadId, from: m.From || m.from, subject: m.Subject || m.subject, date: m.date, snippet: m.snippet, labels: m.labels || m.labelIds }));\nfs.mkdirSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox', { recursive: true });\nfs.writeFileSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox/today_inbox.json', JSON.stringify(rows, null, 1));\nreturn [{ json: { written: 'today_inbox.json', n: rows.length } }];"
+      }
+    },
+    {
+      "id": "cdf33330-abae-5031-9fa5-89c68cd47720",
+      "name": "Build brief (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        540,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.morning_brief\""
+      }
+    },
+    {
+      "id": "2903a5d8-099b-5f64-9c41-7b8a86a66c85",
+      "name": "Mail it to me",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        0
+      ],
+      "parameters": {
+        "sendTo": "me@example.com",
+        "subject": "=Morning brief {{ $today.toFormat('ccc d LLL') }}",
+        "emailType": "text",
+        "message": "={{ $json.stdout }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "07:00 weekdays": {
+      "main": [
+        [
+          {
+            "node": "Today's calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Today's calendar": {
+      "main": [
+        [
+          {
+            "node": "Save calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save calendar": {
+      "main": [
+        [
+          {
+            "node": "Unread mail (24h)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unread mail (24h)": {
+      "main": [
+        [
+          {
+            "node": "Save inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save inbox": {
+      "main": [
+        [
+          {
+            "node": "Build brief (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build brief (Python)": {
+      "main": [
+        [
+          {
+            "node": "Mail it to me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {},
+  "tags": []
+}

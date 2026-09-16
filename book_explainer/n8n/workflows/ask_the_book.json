@@ -1,0 +1,175 @@
+{
+  "id": "askTheBook00001",
+  "name": "Ask the book - grounded Q&A agent",
+  "nodes": [
+    {
+      "id": "fa4fb9c3-2d01-5beb-a6b3-1e4f7b939d3f",
+      "name": "POST /ask",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "book-explainer-ask"
+    },
+    {
+      "id": "f3570039-8429-5350-bac5-49aef45e98bd",
+      "name": "Ask the book (agent)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -120,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.question }}",
+        "options": {
+          "systemMessage": "You answer questions about ONE paper-trading book, using ONLY what your tools return.\n\nTools:\n- list_book: every position (symbol, side, dollar target, agg_z, number of sources, status today).\n- get_position: one position's checked numbers (every source's percentile and contribution), its verified explanation and dated news headlines. Input is the ticker, e.g. \"ABBV\".\n\nRules:\n1. Always call a tool before answering. Never answer from memory or outside knowledge \u2014 not prices, P/E ratios, analyst views, or company facts beyond what the tool returns.\n2. If a tool says NOT_IN_BOOK, or the question needs something the tools do not contain, reply starting with \"I can't answer that from the book:\" and say why in one sentence.\n3. Refuse anything that is not an explanation of the book: price or return forecasts, buy/sell advice, placing or cancelling orders, sizing. You are read-only; say so. Reply starting with \"I can't answer that from the book:\".\n4. Never say the strategy or the aggregate works, has edge, or predicts anything. It is an untested forward arm.\n5. Direction: a contribution above 0 votes LONG, below 0 votes SHORT. A \"driver\" votes with the position; a \"dissenter\" votes against it. Source keys (e.g. days_to_cover) may be given alongside their plain label.\n6. Numbers exactly as the tool gives them: percentiles as whole numbers, contributions to 3 decimals, dollars with commas, dates as YYYY-MM-DD.\n7. Plain English, at most 4 sentences. Define jargon in the same sentence (e.g. \"days-to-cover, short interest divided by average daily volume\").\n",
+          "maxIterations": 6
+        }
+      }
+    },
+    {
+      "id": "8083f6b8-00ef-5371-b4ee-eab33a1b8944",
+      "name": "Gemini chat model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -200,
+        240
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-book-explainer",
+          "name": "Gemini (Book Explainer)"
+        }
+      }
+    },
+    {
+      "id": "01a0381d-8c87-5d1d-8d2a-4940176aa433",
+      "name": "list_book",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        240
+      ],
+      "parameters": {
+        "name": "list_book",
+        "description": "List every position in the paper book. Input is ignored (pass an empty string).",
+        "language": "javaScript",
+        "jsCode": "// Tool: list_book() -> one line per position (symbol, side, target $, agg_z, sources, status today).\nconst fs = require('fs');\nconst book = JSON.parse(fs.readFileSync('C:/Users/ajwal/Documents/ai_agent_eval/results/book_latest.json', 'utf8'));\nconst rows = book.positions.map(p =>\n  `${p.symbol} | ${p.name} | ${p.side} | $${p.target_dollars} | agg_z ${p.agg_z} | ${p.n_sources} sources | entered ${p.entry_date} | ${p.status_today}`);\nreturn `Paper book as of ${book.asof} (${rows.length} positions; refused shorts: ${book.refused_shorts.join(', ')})\\n` + rows.join('\\n');\n"
+      }
+    },
+    {
+      "id": "680c6a27-acbc-52e1-a21d-172439033a73",
+      "name": "get_position",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        240
+      ],
+      "parameters": {
+        "name": "get_position",
+        "description": "Get one position's checked numbers, verified explanation and news. Input: the ticker symbol, e.g. ABBV.",
+        "language": "javaScript",
+        "jsCode": "// Tool: get_position(symbol) -> the verified explanation card plus the numbers it was checked against.\n// Reads the book payload written by eval/book_cli.py (results/book_latest.json). No prices, no account.\nconst fs = require('fs');\nconst book = JSON.parse(fs.readFileSync('C:/Users/ajwal/Documents/ai_agent_eval/results/book_latest.json', 'utf8'));\nconst sym = String(query || '').toUpperCase().replace(/[^A-Z.\\-]/g, '');\nconst p = book.positions.find(x => x.symbol === sym);\nif (!p) {\n  const refused = book.refused_shorts.includes(sym) ? ` ${sym} was a refused short (not borrowable), so it is not held.` : '';\n  return `NOT_IN_BOOK: ${sym || '(empty)'} is not a position in the ${book.asof} paper book.${refused} Positions: ${book.positions.map(x => x.symbol).join(', ')}`;\n}\nreturn JSON.stringify({\n  asof: book.asof, symbol: p.symbol, name: p.name, sector: p.sector, side: p.side,\n  target_dollars: p.target_dollars, entry_date: p.entry_date, agg_z_at_entry: p.agg_z,\n  n_sources_at_entry: p.n_sources, entry_score: p.entry_score, entry_percentile: p.entry_pct,\n  latest_score: p.latest_score, latest_percentile: p.latest_pct, status_today: p.status_today,\n  entry_votes_by_size: p.votes, drivers: p.card?.drivers, dissenters: p.card?.dissenters,\n  headline: p.card?.headline, explanation: p.card?.body, news_headlines: p.news,\n  checks: { verifier_corrected: p.verifier_ok === false, guard_pass: p.guard_pass },\n});\n"
+      }
+    },
+    {
+      "id": "e5c7bf62-0e1e-5763-bd3a-601943771885",
+      "name": "Respond: answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ question: $('POST /ask').item.json.body.question, answer: $json.output }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "POST /ask": {
+      "main": [
+        [
+          {
+            "node": "Ask the book (agent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask the book (agent)": {
+      "main": [
+        [
+          {
+            "node": "Respond: answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini chat model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ask the book (agent)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_book": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ask the book (agent)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_position": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ask the book (agent)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

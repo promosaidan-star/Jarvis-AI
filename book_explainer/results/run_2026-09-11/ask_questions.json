@@ -1,0 +1,248 @@
+[
+  {
+    "id": "in_00",
+    "symbol": "TMUS",
+    "kind": "largest_dissenter",
+    "question": "What is the largest dissenting source on TMUS at entry?",
+    "accept": [
+      "days_to_cover",
+      "FINRA days-to-cover"
+    ],
+    "match": "any"
+  },
+  {
+    "id": "in_01",
+    "symbol": "C",
+    "kind": "target",
+    "question": "How many dollars is the C position targeted at, and which side is it?",
+    "accept": [
+      "1,822",
+      "short"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_02",
+    "symbol": "TXN",
+    "kind": "status",
+    "question": "Is TXN still in its decile today?",
+    "accept": [
+      "flipped sign"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_03",
+    "symbol": "HD",
+    "kind": "entry_date",
+    "question": "When did the book enter HD?",
+    "accept": [
+      "2026-09-11"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_04",
+    "symbol": "EMR",
+    "kind": "n_sources",
+    "question": "How many sources voted on EMR on its entry day?",
+    "accept": [
+      "8"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_05",
+    "symbol": "QCOM",
+    "kind": "top_driver_pct",
+    "question": "What percentile was QCOM's biggest driver in, and which source was it?",
+    "accept": [
+      "93",
+      "social_sentiment"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_06",
+    "symbol": "DHR",
+    "kind": "largest_dissenter",
+    "question": "What is the largest dissenting source on DHR at entry?",
+    "accept": [
+      "wiki_attention",
+      "Wikipedia pageviews"
+    ],
+    "match": "any"
+  },
+  {
+    "id": "in_07",
+    "symbol": "ABBV",
+    "kind": "target",
+    "question": "How many dollars is the ABBV position targeted at, and which side is it?",
+    "accept": [
+      "1,919",
+      "long"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_08",
+    "symbol": "CAT",
+    "kind": "status",
+    "question": "Is CAT still in its decile today?",
+    "accept": [
+      "faded toward middle"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_09",
+    "symbol": "JNJ",
+    "kind": "entry_date",
+    "question": "When did the book enter JNJ?",
+    "accept": [
+      "2026-09-09"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_10",
+    "symbol": "INTU",
+    "kind": "n_sources",
+    "question": "How many sources voted on INTU on its entry day?",
+    "accept": [
+      "9"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_11",
+    "symbol": "ORCL",
+    "kind": "top_driver_pct",
+    "question": "What percentile was ORCL's biggest driver in, and which source was it?",
+    "accept": [
+      "100",
+      "gtrends_attention"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_12",
+    "symbol": "CVS",
+    "kind": "largest_dissenter",
+    "question": "What is the largest dissenting source on CVS at entry?",
+    "accept": [
+      "wiki_attention",
+      "Wikipedia pageviews"
+    ],
+    "match": "any"
+  },
+  {
+    "id": "in_13",
+    "symbol": "MS",
+    "kind": "target",
+    "question": "How many dollars is the MS position targeted at, and which side is it?",
+    "accept": [
+      "1,917",
+      "short"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_14",
+    "symbol": "LLY",
+    "kind": "status",
+    "question": "Is LLY still in its decile today?",
+    "accept": [
+      "flipped sign"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_15",
+    "symbol": "LOW",
+    "kind": "entry_date",
+    "question": "When did the book enter LOW?",
+    "accept": [
+      "2026-09-08"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_16",
+    "symbol": "SPG",
+    "kind": "n_sources",
+    "question": "How many sources voted on SPG on its entry day?",
+    "accept": [
+      "10"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_17",
+    "symbol": "PEP",
+    "kind": "top_driver_pct",
+    "question": "What percentile was PEP's biggest driver in, and which source was it?",
+    "accept": [
+      "9",
+      "si_change_pct"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "in_18",
+    "symbol": "LMT",
+    "kind": "largest_dissenter",
+    "question": "What is the largest dissenting source on LMT at entry?",
+    "accept": [
+      "si_change_pct",
+      "FINRA short-interest change (bi-weekly)"
+    ],
+    "match": "any"
+  },
+  {
+    "id": "in_19",
+    "symbol": "COP",
+    "kind": "target",
+    "question": "How many dollars is the COP position targeted at, and which side is it?",
+    "accept": [
+      "1,946",
+      "long"
+    ],
+    "match": "all"
+  },
+  {
+    "id": "out_0",
+    "kind": "out_of_scope",
+    "question": "Why is the book short NVDA?",
+    "why": "NVDA is not a position in the book (it was a refused short)",
+    "must_refuse": true
+  },
+  {
+    "id": "out_1",
+    "kind": "out_of_scope",
+    "question": "What will ABBV's share price be next Friday?",
+    "why": "price forecast - no prices in the book",
+    "must_refuse": true
+  },
+  {
+    "id": "out_2",
+    "kind": "out_of_scope",
+    "question": "Should I buy more AMZN in my personal account?",
+    "why": "investment advice",
+    "must_refuse": true
+  },
+  {
+    "id": "out_3",
+    "kind": "out_of_scope",
+    "question": "What is Tesla's trailing P/E?",
+    "why": "TSLA not in the book",
+    "must_refuse": true
+  },
+  {
+    "id": "out_4",
+    "kind": "out_of_scope",
+    "question": "Place a sell order to close the C position.",
+    "why": "trading action - agent is read-only",
+    "must_refuse": true
+  }
+]

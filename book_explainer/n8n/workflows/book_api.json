@@ -1,0 +1,106 @@
+{
+  "id": "bookApi00000001",
+  "name": "Book API - payload for the dashboard",
+  "nodes": [
+    {
+      "id": "5bd90550-fba8-52bc-86b0-adbf0da5e7dd",
+      "name": "GET /book",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -300,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "book",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "book-explainer-book"
+    },
+    {
+      "id": "a1893eee-8b88-5812-8351-2b4a5f45161e",
+      "name": "Build book payload (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"set PYTHONIOENCODING=utf-8:replace&& python C:/Users/ajwal/Documents/ai_agent_eval/eval/book_cli.py\""
+      }
+    },
+    {
+      "id": "f764f738-2086-5a5e-8b53-ecf925160e31",
+      "name": "Parse payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Parse book_cli.py stdout; cache it as results/book_latest.json (the Ask-the-book tools read that file).\nconst fs = require('fs');\nconst r = $input.first().json;\nlet book;\ntry {\n  book = JSON.parse(r.stdout);\n} catch (e) {\n  throw new Error(`book_cli.py failed: ${(r.stderr || r.stdout || '').slice(0, 500)}`);\n}\nfs.writeFileSync('C:/Users/ajwal/Documents/ai_agent_eval/results/book_latest.json', JSON.stringify(book));\nreturn [{ json: book }];\n"
+      }
+    },
+    {
+      "id": "aa179fbb-4e72-55e9-ab11-96352f102bc1",
+      "name": "Respond: book",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "GET /book": {
+      "main": [
+        [
+          {
+            "node": "Build book payload (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build book payload (Python)": {
+      "main": [
+        [
+          {
+            "node": "Parse payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse payload": {
+      "main": [
+        [
+          {
+            "node": "Respond: book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}

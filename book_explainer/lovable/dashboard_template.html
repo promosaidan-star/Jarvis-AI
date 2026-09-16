@@ -1,0 +1,365 @@
+<title>Book Explainer Desk</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --paper: #eef1f4; --surface: #ffffff; --surface-2: #f6f8fa; --line: #d3dae1;
+    --ink: #12202c; --muted: #5a6b7b; --faint: #8797a6;
+    --accent: #0f6a8b; --accent-soft: #e2eef3;
+    --long: #1a7350; --long-soft: #e2f0ea; --short: #a32f3d; --short-soft: #f7e6e8;
+    --warn: #9a6512; --warn-soft: #f7ecd9;
+    --shadow: 0 1px 2px rgba(18,32,44,.06), 0 8px 24px rgba(18,32,44,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0d151d; --surface: #141f29; --surface-2: #1a2734; --line: #26343f;
+      --ink: #e6edf3; --muted: #9fb0bf; --faint: #74889a;
+      --accent: #56b6d8; --accent-soft: #16303c;
+      --long: #5fc59a; --long-soft: #15302a; --short: #e8828e; --short-soft: #3a1f25;
+      --warn: #d8a34a; --warn-soft: #33270f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0d151d; --surface: #141f29; --surface-2: #1a2734; --line: #26343f;
+    --ink: #e6edf3; --muted: #9fb0bf; --faint: #74889a;
+    --accent: #56b6d8; --accent-soft: #16303c;
+    --long: #5fc59a; --long-soft: #15302a; --short: #e8828e; --short-soft: #3a1f25;
+    --warn: #d8a34a; --warn-soft: #33270f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px; line-height: 1.55;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px; padding-left: 20px; padding-right: 20px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: 600; letter-spacing: -.01em; }
+  h1 { font-size: 1.6rem; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .72rem; letter-spacing: .12em;
+             text-transform: uppercase; color: var(--faint); }
+  .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  header.top { display: flex; flex-wrap: wrap; gap: 14px; align-items: baseline; justify-content: space-between; }
+  .readonly {
+    margin-top: 14px; display: flex; gap: 10px; align-items: flex-start;
+    border-left: 3px solid var(--warn); background: var(--warn-soft); color: var(--ink);
+    padding: 10px 14px; font-size: .88rem;
+  }
+  .readonly strong { color: var(--warn); }
+
+  .strip { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .pill { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem; padding: 3px 8px;
+          border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); }
+  .pill.bad { color: var(--short); border-color: var(--short); background: var(--short-soft); }
+
+  .kpis { margin-top: 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+          background: var(--line); border: 1px solid var(--line); }
+  .kpi { background: var(--surface); padding: 14px 16px; }
+  .kpi .v { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.5rem; font-weight: 600;
+            font-variant-numeric: tabular-nums; }
+  .kpi .l { color: var(--muted); font-size: .8rem; }
+
+  .controls { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button.seg, button.ghost {
+    font: inherit; font-size: .84rem; padding: 6px 12px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--muted); border-radius: 4px; cursor: pointer;
+  }
+  button.seg[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  button.seg:focus-visible, button.ghost:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tablewrap { margin-top: 12px; overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 860px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: .88rem; }
+  th { position: sticky; top: 0; background: var(--surface-2); color: var(--muted); font-weight: 600;
+       font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+  th[aria-sort="ascending"]::after { content: " ▲"; color: var(--accent); }
+  th[aria-sort="descending"]::after { content: " ▼"; color: var(--accent); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.r { text-align: right; }
+  .tick { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; }
+  .side { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .74rem; padding: 2px 7px; border-radius: 3px; }
+  .side.long { background: var(--long-soft); color: var(--long); }
+  .side.short { background: var(--short-soft); color: var(--short); }
+  .status { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+  .status b { font-weight: 600; color: var(--ink); }
+  .flag { font-size: .72rem; padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+          border: 1px solid var(--line); color: var(--muted); }
+  .flag.err { border-color: var(--short); color: var(--short); background: var(--short-soft); font-weight: 600; }
+  .flag.ok { border-color: transparent; color: var(--faint); }
+
+  /* drawer */
+  .scrim { position: fixed; inset: 0; background: rgba(10,18,26,.45); opacity: 0; pointer-events: none;
+           transition: opacity .18s ease; z-index: 10; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  aside.drawer {
+    position: fixed; top: 0; right: 0; height: 100%; width: min(660px, 100%); background: var(--surface);
+    border-left: 1px solid var(--line); box-shadow: var(--shadow); transform: translateX(102%);
+    transition: transform .22s ease; z-index: 11; overflow-y: auto; padding: 22px 24px 60px;
+  }
+  aside.drawer.open { transform: none; }
+  @media (prefers-reduced-motion: reduce) { aside.drawer, .scrim { transition: none; } }
+  .drawer h2 { font-size: 1.15rem; margin-top: 4px; }
+  .drawer .body p { max-width: 62ch; }
+  .newsline { border-left: 2px solid var(--accent); background: var(--surface-2); padding: 8px 12px;
+              color: var(--muted); font-size: .88rem; }
+  .sect { margin-top: 26px; }
+  .sect > .eyebrow { display: block; margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: .78rem; border: 1px solid var(--line); border-radius: 3px; padding: 3px 8px; color: var(--muted); }
+  .chip .num { color: var(--ink); font-weight: 600; }
+  .votes { width: 100%; border-collapse: collapse; min-width: 0; }
+  .votes td { padding: 5px 6px; border-bottom: 1px solid var(--line); font-size: .82rem; vertical-align: middle; }
+  .bar { position: relative; height: 10px; background: var(--surface-2); min-width: 120px; }
+  .bar i { position: absolute; top: 0; height: 100%; display: block; }
+  .bar .mid { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--line); left: 50%; }
+  .checkitem { font-size: .85rem; color: var(--muted); margin: 0 0 6px; padding-left: 14px; text-indent: -14px; }
+  .checkitem.bad { color: var(--short); }
+  .none { color: var(--faint); font-size: .85rem; }
+  .qa { margin-top: 10px; border: 1px solid var(--line); background: var(--surface); padding: 12px 14px; }
+  .qa .q { font-weight: 600; }
+  .qa .a { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+  .qa .a.refuse { color: var(--warn); }
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--faint); font-size: .82rem; }
+  @media (max-width: 720px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    aside.drawer { width: 100%; padding: 18px 16px 50px; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <span class="eyebrow">Paper book &middot; explainability layer</span>
+      <h1>Book Explainer</h1>
+    </div>
+    <div style="text-align:right">
+      <div class="num" id="asof"></div>
+      <button class="ghost" id="themeBtn" type="button">Dark / light</button>
+    </div>
+  </header>
+
+  <div class="readonly">
+    <span aria-hidden="true">🔒</span>
+    <span><strong>Read-only.</strong> <span id="disclaimer"></span></span>
+  </div>
+
+  <div class="strip" id="strip"></div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="controls">
+    <span class="eyebrow" style="margin-right:4px">Filter</span>
+    <button class="seg" type="button" data-filter="all" aria-pressed="true">All</button>
+    <button class="seg" type="button" data-filter="long" aria-pressed="false">Long</button>
+    <button class="seg" type="button" data-filter="short" aria-pressed="false">Short</button>
+    <button class="seg" type="button" data-filter="review" aria-pressed="false">Needs review</button>
+    <button class="seg" type="button" data-filter="flipped" aria-pressed="false">Flipped sign</button>
+  </div>
+
+  <div class="tablewrap">
+    <table id="book">
+      <thead><tr>
+        <th data-k="symbol">Symbol</th>
+        <th data-k="name">Company</th>
+        <th data-k="side">Side</th>
+        <th data-k="target_dollars" class="r">Target $</th>
+        <th data-k="agg_z" class="r">Entry z</th>
+        <th data-k="n_sources" class="r">Sources</th>
+        <th data-k="status_today">Status today</th>
+        <th data-k="checks">Checks</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <section class="sect">
+    <span class="eyebrow">Ask the book &mdash; recorded answers from the evaluation set</span>
+    <p style="max-width:62ch;color:var(--muted);margin:0 0 4px">The chat panel runs against the n8n
+      <span class="num">POST /ask</span> webhook, where an agent answers using only two tools over this book.
+      These are verbatim answers from the scored run.</p>
+    <div id="qa"></div>
+  </section>
+
+  <footer>
+    n8n workflow &rarr; Gemini writer &rarr; Gemini verifier &rarr; deterministic Python guard.
+    Paper account only; the aggregate is an untested forward arm and nothing here is evidence it works.
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Position detail" tabindex="-1"></aside>
+
+<script id="bookdata" type="application/json">__BOOK_JSON__</script>
+<script id="qadata" type="application/json">__QA_JSON__</script>
+<script>
+(function () {
+  const book = JSON.parse(document.getElementById('bookdata').textContent);
+  const qa = JSON.parse(document.getElementById('qadata').textContent);
+  const $ = (s) => document.querySelector(s);
+  const fmt = (n) => n.toLocaleString('en-US');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const needsReview = (p) => !p.guard_pass || (p.company_fact_unsupported || []).length > 0;
+
+  $('#asof').textContent = 'as of ' + book.asof;
+  $('#disclaimer').textContent = book.disclaimer;
+
+  // health strip
+  const hb = book.heartbeat || {};
+  const strip = $('#strip');
+  if (hb.available) {
+    const stale = hb.sources.filter((s) => s.status !== 'OK');
+    strip.innerHTML = '<span class="eyebrow" style="margin-right:4px">Sources</span>' +
+      hb.sources.map((s) => `<span class="pill ${s.status === 'OK' ? '' : 'bad'}" title="newest print ${esc(s.newest_print)} &middot; ${s.age_days} days old &middot; ${s.coverage_pct}% of pool">${esc(s.source)}</span>`).join('') +
+      `<span class="pill" style="border:none">${stale.length} stale of ${hb.sources.length}, swept ${esc(hb.run_at)}</span>`;
+  }
+
+  // KPIs
+  const pos = book.positions;
+  const longs = pos.filter((p) => p.side === 'long');
+  const shorts = pos.filter((p) => p.side === 'short');
+  const sum = (a) => a.reduce((t, p) => t + p.target_dollars, 0);
+  const corrected = pos.filter((p) => p.verifier_ok === false).length;
+  const flagged = pos.filter((p) => !p.guard_pass).length;
+  const kpi = [
+    [pos.length, `positions &middot; ${longs.length} long / ${shorts.length} short`],
+    [`$${fmt(sum(longs))} / $${fmt(sum(shorts))}`, 'gross long / short target'],
+    [`${corrected}`, `cards the verifier corrected (${Math.round(100 * corrected / pos.length)}%)`],
+    [`${flagged}`, `cards the guard flags (${Math.round(100 * flagged / pos.length)}%)`],
+  ];
+  $('#kpis').innerHTML = kpi.map(([v, l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // table
+  let filter = 'all', sortK = 'target_dollars', dir = -1;
+  const tbody = $('#book tbody');
+  function rows() {
+    let r = pos.slice();
+    if (filter === 'long' || filter === 'short') r = r.filter((p) => p.side === filter);
+    if (filter === 'review') r = r.filter(needsReview);
+    if (filter === 'flipped') r = r.filter((p) => p.status_today === 'flipped sign');
+    return r.sort((a, b) => {
+      const va = sortK === 'checks' ? (needsReview(a) ? 1 : 0) : a[sortK];
+      const vb = sortK === 'checks' ? (needsReview(b) ? 1 : 0) : b[sortK];
+      return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir;
+    });
+  }
+  function draw() {
+    tbody.innerHTML = rows().map((p) => {
+      const gf = (p.guard_fails || []).length;
+      const vp = (p.verify_problems || []).length;
+      return `<tr tabindex="0" data-sym="${p.symbol}">
+        <td class="tick">${esc(p.symbol)}</td>
+        <td>${esc(p.name)}</td>
+        <td><span class="side ${p.side}">${p.side}</span></td>
+        <td class="r num">${fmt(p.target_dollars)}</td>
+        <td class="r num">${p.agg_z.toFixed(2)}</td>
+        <td class="r num">${p.n_sources}</td>
+        <td class="status">${p.status_today === 'still in decile' ? '<b>still in decile</b>' : esc(p.status_today)}</td>
+        <td><span class="flag ${vp ? 'err' : 'ok'}">verifier ${vp ? vp + ' fixed' : 'clean'}</span>
+            <span class="flag ${gf ? 'err' : 'ok'}">guard ${gf ? gf + ' flag' + (gf > 1 ? 's' : '') : 'pass'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+  document.querySelectorAll('.seg').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('.seg').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    filter = b.dataset.filter; draw();
+  }));
+  document.querySelectorAll('#book th').forEach((th) => th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    dir = sortK === k ? -dir : (k === 'symbol' || k === 'name' || k === 'status_today' ? 1 : -1);
+    sortK = k;
+    document.querySelectorAll('#book th').forEach((x) => x.removeAttribute('aria-sort'));
+    th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+    draw();
+  }));
+
+  // drawer
+  const drawer = $('#drawer'), scrim = $('#scrim');
+  function spark(h) {
+    if (!h || h.length < 2) return '';
+    const w = 300, ht = 46, pad = 4;
+    const xs = h.map((d, i) => pad + i * (w - 2 * pad) / (h.length - 1));
+    const lo = Math.min(...h.map((d) => d.score)), hi = Math.max(...h.map((d) => d.score));
+    const y = (v) => ht - pad - (v - lo) / ((hi - lo) || 1) * (ht - 2 * pad);
+    const d = h.map((p, i) => `${i ? 'L' : 'M'}${xs[i].toFixed(1)},${y(p.score).toFixed(1)}`).join(' ');
+    const zero = lo < 0 && hi > 0 ? `<line x1="0" y1="${y(0).toFixed(1)}" x2="${w}" y2="${y(0).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>` : '';
+    return `<svg viewBox="0 0 ${w} ${ht}" width="100%" height="${ht}" role="img"
+      aria-label="score from ${h[0].score} on ${h[0].day} to ${h[h.length - 1].score} on ${h[h.length - 1].day}">
+      ${zero}<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+      <circle cx="${xs[xs.length - 1].toFixed(1)}" cy="${y(h[h.length - 1].score).toFixed(1)}" r="3" fill="var(--accent)"/></svg>
+      <div class="num" style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--faint)">
+        <span>${h[0].day}&nbsp; ${h[0].score.toFixed(3)}</span><span>${h[h.length - 1].day}&nbsp; ${h[h.length - 1].score.toFixed(3)}</span></div>`;
+  }
+  function voteRows(p) {
+    const max = Math.max(...p.votes.map((v) => Math.abs(v.contribution))) || 1;
+    return p.votes.map((v) => {
+      const w = 50 * Math.abs(v.contribution) / max;
+      const long = v.contribution > 0;
+      const bar = `<span class="bar"><i class="mid"></i><i style="${long ? `left:50%;width:${w}%` : `right:50%;width:${w}%`};background:${long ? 'var(--long)' : 'var(--short)'}"></i></span>`;
+      return `<tr><td>${esc(v.label)}</td><td class="num r">${v.pct}<span style="color:var(--faint)">pct</span></td>
+        <td style="width:46%">${bar}</td>
+        <td class="num r" style="color:${long ? 'var(--long)' : 'var(--short)'}">${v.contribution > 0 ? '+' : ''}${v.contribution.toFixed(3)}</td>
+        <td style="color:var(--faint);font-size:.74rem">${v.sign === 1 ? 'high = long' : 'high = short'} &middot; ${esc(v.fit)}</td></tr>`;
+    }).join('');
+  }
+  function open(sym) {
+    const p = pos.find((x) => x.symbol === sym);
+    const paras = (p.card.body || '').split(/\n\n+/).map((t) =>
+      /^news context/i.test(t.trim()) ? `<p class="newsline">${esc(t)}</p>` : `<p>${esc(t)}</p>`).join('');
+    drawer.innerHTML = `
+      <button class="ghost" id="closeBtn" type="button" style="float:right">Close</button>
+      <span class="eyebrow">${esc(p.sector)} &middot; entered ${esc(p.entry_date)}</span>
+      <h2><span class="tick">${esc(p.symbol)}</span> &mdash; ${esc(p.name)}</h2>
+      <div class="chips" style="margin:8px 0 14px">
+        <span class="chip"><span class="side ${p.side}">${p.side}</span></span>
+        <span class="chip">target <span class="num">$${fmt(p.target_dollars)}</span></span>
+        <span class="chip">entry z <span class="num">${p.agg_z.toFixed(2)}</span></span>
+        <span class="chip"><span class="num">${p.n_sources}</span> sources</span>
+        <span class="chip">today <span class="num">${esc(p.status_today)}</span></span>
+      </div>
+      <p style="font-weight:600;max-width:62ch">${esc(p.card.headline)}</p>
+      <div class="body">${paras}</div>
+
+      <div class="sect"><span class="eyebrow">Checked against &mdash; every source that voted at entry</span>
+        <table class="votes"><tbody>${voteRows(p)}</tbody></table>
+        <p class="none" style="margin-top:8px">Score at entry <span class="num">${p.entry_score.toFixed(3)}</span>
+          (${p.entry_pct}th percentile of the pool) &rarr; latest
+          <span class="num">${p.latest_score == null ? 'no row' : p.latest_score.toFixed(3)}</span>
+          ${p.latest_pct == null ? '' : `(${p.latest_pct}th)`}</p>
+      </div>
+
+      <div class="sect"><span class="eyebrow">Score since entry</span>${spark(p.history)}</div>
+
+      <div class="sect"><span class="eyebrow">Verifier corrections</span>
+        ${(p.verify_problems || []).length ? p.verify_problems.map((x) => `<p class="checkitem">&mdash; ${esc(x)}</p>`).join('') : '<p class="none">None: the verifier changed nothing on this card.</p>'}
+      </div>
+      <div class="sect"><span class="eyebrow">Deterministic guard</span>
+        ${(p.guard_fails || []).length ? p.guard_fails.map((f) => `<p class="checkitem bad">&mdash; ${esc(f.check)}: ${esc(f.detail)}</p>`).join('') : '<p class="none">Passes every check: percentiles, contributions, z, dollars, dates, decile status, driver order, quoted headlines.</p>'}
+        ${(p.company_fact_unsupported || []).length ? `<p class="checkitem">&mdash; company wording not found in the background profile: ${p.company_fact_unsupported.map(esc).join(', ')}</p>` : ''}
+      </div>
+      <div class="sect"><span class="eyebrow">News &mdash; context only, never a reason a rank moved</span>
+        ${(p.news || []).map((n) => `<p class="checkitem">${esc(n.date)} &middot; ${esc(n.publisher)} &mdash; ${esc(n.title)}</p>`).join('') || '<p class="none">No headlines on file.</p>'}
+      </div>`;
+    drawer.classList.add('open'); scrim.classList.add('open'); drawer.focus();
+    $('#closeBtn').addEventListener('click', close);
+  }
+  function close() { drawer.classList.remove('open'); scrim.classList.remove('open'); }
+  scrim.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  tbody.addEventListener('click', (e) => { const tr = e.target.closest('tr'); if (tr) open(tr.dataset.sym); });
+  tbody.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset.sym) open(e.target.dataset.sym); });
+
+  $('#qa').innerHTML = qa.map((x) => `<div class="qa"><div class="q">${esc(x.q)}</div>
+    <div class="a ${x.refuse ? 'refuse' : ''}">${esc(x.a)}</div></div>`).join('');
+
+  const btn = $('#themeBtn');
+  btn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  });
+
+  draw();
+})();
+</script>

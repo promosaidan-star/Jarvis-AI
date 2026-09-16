@@ -1,0 +1,445 @@
+{
+  "id": "jarvisApi0000001",
+  "name": "Jarvis - API and ask agent",
+  "nodes": [
+    {
+      "id": "61e28569-b407-59fe-9b9a-0c89c56c0741",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -300
+      ],
+      "parameters": {
+        "content": "## Jarvis API (for the Lovable dashboard)\n`GET /jarvis/today` payload \u00b7 `POST /jarvis/slides {topic, slides}` -> .pptx \u00b7 `POST /jarvis/spotify {playlist:bool}` -> picks \u00b7 `POST /jarvis/ask {question}` -> agent with tools today + log.",
+        "width": 460,
+        "height": 150,
+        "color": 4
+      }
+    },
+    {
+      "id": "14acfba1-b59f-5964-88b3-71d7872312a6",
+      "name": "GET /jarvis/today",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -600,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "jarvis/today",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "jarvis-today"
+    },
+    {
+      "id": "9419a744-e07b-55d9-b01f-bc17f195b65f",
+      "name": "Payload (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.api\""
+      }
+    },
+    {
+      "id": "32b32a69-f532-57dc-a751-ace68d0a2d6f",
+      "name": "Parse payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nlet d; try { d = JSON.parse(r.stdout); } catch (e) { throw new Error((r.stderr || r.stdout || '').slice(0, 500)); }\nreturn [{ json: d }];"
+      }
+    },
+    {
+      "id": "1c6a6c68-244c-553b-aa38-33f2fb8bceb2",
+      "name": "Respond: today",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        60,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      }
+    },
+    {
+      "id": "d30eb09d-689f-5e1a-bb8c-def618e0c54a",
+      "name": "POST /jarvis/slides",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -600,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jarvis/slides",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "jarvis-slides"
+    },
+    {
+      "id": "9e123693-bc15-52ec-a420-38b6252bc85d",
+      "name": "Build deck (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        200
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.pptx_builder --topic \"{{ String($json.body.topic).replace(/[\"^&|<>]/g, ) }}\" --slides {{ Number($json.body.slides) || 6 }} C:/Users/ajwal/Documents/Jarvis-AI/out/{{ String($json.body.topic).replace(/[^a-z0-9]+/gi, \"_\").slice(0, 40) }}.pptx\""
+      }
+    },
+    {
+      "id": "1ecd016f-96e5-5553-a821-77124d04c6b9",
+      "name": "Respond: deck path",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -160,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ deck: $json.stdout.trim(), error: $json.stderr }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "b8269ec9-9fa0-5bb7-9d50-859ed9c1c071",
+      "name": "POST /jarvis/spotify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -600,
+        400
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jarvis/spotify",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "jarvis-spotify"
+    },
+    {
+      "id": "0b174c56-ef71-51ff-9ad9-af2b89fbb9ec",
+      "name": "Recommend (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        400
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.spotify recs --json {{ $json.body.playlist ? '--playlist' : '' }}\""
+      }
+    },
+    {
+      "id": "4bd08fc8-dfe5-5de4-994b-8f5915d3631c",
+      "name": "Parse picks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        400
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nlet d; try { d = JSON.parse(r.stdout); } catch (e) { throw new Error((r.stderr || r.stdout || '').slice(0, 500)); }\nreturn [{ json: d }];"
+      }
+    },
+    {
+      "id": "5f7d0a6e-5e4b-5a96-845f-68c55321be5b",
+      "name": "Respond: picks",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        60,
+        400
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      }
+    },
+    {
+      "id": "0bd5c6ae-d43a-5dd0-89a5-61ed5ca9fcef",
+      "name": "POST /jarvis/ask",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -600,
+        620
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jarvis/ask",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "jarvis-ask"
+    },
+    {
+      "id": "02fa80ae-d8d8-5be2-957d-9eebd1276c7b",
+      "name": "Jarvis (agent)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -380,
+        620
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.question }}",
+        "options": {
+          "systemMessage": "You are Jarvis, a daily-ops assistant for one person. Always call `today` before answering questions about their day, mail, tickets, weather or portfolio; answer only from what it returns. Use `log` when they tell you something is done, to do, or worth noting (input format: kind|text). You cannot send email, trade, or change anything else; say so if asked. Plain English, short, numbers before adjectives.",
+          "maxIterations": 6
+        }
+      }
+    },
+    {
+      "id": "e0d20e3d-e74b-58f2-875a-0971db07f1f5",
+      "name": "Gemini chat model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -460,
+        840
+      ],
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-jarvis",
+          "name": "Gemini (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "fc78064d-727c-5781-882b-b32ca7ad8de4",
+      "name": "today",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -280,
+        840
+      ],
+      "parameters": {
+        "name": "today",
+        "description": "Everything about the user's day: weather, calendar, to-dos, tickets, paper portfolio, journal. Input ignored.",
+        "language": "javaScript",
+        "jsCode": "// Tool: today() -> the same JSON the dashboard reads (weather, calendar, tickets, portfolio, journal).\nconst { execSync } = require('child_process');\nreturn execSync('cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.api\"', { maxBuffer: 1 << 24 }).toString();"
+      }
+    },
+    {
+      "id": "ce992423-9e9f-5253-adf6-3903a00467f8",
+      "name": "log",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -120,
+        840
+      ],
+      "parameters": {
+        "name": "log",
+        "description": "Append to the user's journal. Input: 'done|text', 'todo|text' or 'note|text'.",
+        "language": "javaScript",
+        "jsCode": "// Tool: log(kind|text) -> append to today's journal. kind is done, todo or note.\nconst { execSync } = require('child_process');\nconst [kind, ...rest] = String(query).split('|');\nconst text = rest.join('|').trim().replace(/\"/g, \"'\");\nif (!['done', 'todo', 'note'].includes(kind.trim())) return 'kind must be done, todo or note';\nexecSync('cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && python -m jarvis.journal ' + kind.trim() + ' \\\"' + text + '\\\"\"');\nreturn 'logged [' + kind.trim() + '] ' + text;"
+      }
+    },
+    {
+      "id": "779ed028-84e6-5881-836e-070cf4e176a5",
+      "name": "Respond: answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -160,
+        620
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ answer: $json.output }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "GET /jarvis/today": {
+      "main": [
+        [
+          {
+            "node": "Payload (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload (Python)": {
+      "main": [
+        [
+          {
+            "node": "Parse payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse payload": {
+      "main": [
+        [
+          {
+            "node": "Respond: today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /jarvis/slides": {
+      "main": [
+        [
+          {
+            "node": "Build deck (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build deck (Python)": {
+      "main": [
+        [
+          {
+            "node": "Respond: deck path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /jarvis/spotify": {
+      "main": [
+        [
+          {
+            "node": "Recommend (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recommend (Python)": {
+      "main": [
+        [
+          {
+            "node": "Parse picks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse picks": {
+      "main": [
+        [
+          {
+            "node": "Respond: picks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /jarvis/ask": {
+      "main": [
+        [
+          {
+            "node": "Jarvis (agent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jarvis (agent)": {
+      "main": [
+        [
+          {
+            "node": "Respond: answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini chat model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Jarvis (agent)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "today": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis (agent)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis (agent)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,19 @@
+{
+  "clean_cards_flagged (false positives)": "0/45",
+  "recall_by_mutation": {
+    "percentile +9": "39/45",
+    "contribution +0.02": "30/45",
+    "dollar target +$250": "45/45",
+    "agg_z +0.40": "44/45",
+    "date shifted": "45/45",
+    "n_sources wrong": "16/45",
+    "efficacy claim": "45/45",
+    "fake headline": "45/45",
+    "causal news link": "45/45",
+    "status_today wrong": "45/45",
+    "drivers order swapped": "39/45",
+    "dissenter listed as driver": "45/45",
+    "headline > 20 words": "45/45"
+  },
+  "overall_recall": "528/585"
+}

@@ -1,0 +1,221 @@
+{
+  "id": "jarvisDrafts0001",
+  "name": "Jarvis - email reply drafts",
+  "nodes": [
+    {
+      "id": "61e28569-b407-59fe-9b9a-0c89c56c0741",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -280
+      ],
+      "parameters": {
+        "content": "## Reply drafts (never sends)\nUnread mail -> `python -m jarvis.inbox drafts` (Gemini, AJ's voice) -> one Gmail DRAFT per reply, in the original thread. You read, edit, send.\n\nRuns at 11:00 and 16:00 weekdays.",
+        "width": 420,
+        "height": 170,
+        "color": 5
+      }
+    },
+    {
+      "id": "bdd3600b-cc10-5116-b2c1-614f7ff39665",
+      "name": "11:00 + 16:00 weekdays",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11,16 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1a28fd1-eb14-567d-98aa-d8b5e05040f4",
+      "name": "Unread mail (24h)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -340,
+        0
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 40,
+        "simple": true,
+        "filters": {
+          "readStatus": "unread",
+          "receivedAfter": "={{ $now.minus({hours: 24}).toISO() }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "5689eedf-f256-509d-8f67-6fb38488f6a7",
+      "name": "Save inbox",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Write what the Unread mail (24h) node returned to inbox/today_inbox.json for the Python side.\nconst fs = require('fs');\nconst items = $('Unread mail (24h)').all().map(i => i.json);\nconst rows = items.map(m => ({ id: m.id, threadId: m.threadId, from: m.From || m.from, subject: m.Subject || m.subject, date: m.date, snippet: m.snippet, labels: m.labels || m.labelIds }));\nfs.mkdirSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox', { recursive: true });\nfs.writeFileSync('C:/Users/ajwal/Documents/Jarvis-AI/inbox/today_inbox.json', JSON.stringify(rows, null, 1));\nreturn [{ json: { written: 'today_inbox.json', n: rows.length } }];"
+      }
+    },
+    {
+      "id": "6f23355d-ec2d-5080-98c5-cd9ff96483bc",
+      "name": "Draft replies (Python)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        100,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.inbox drafts\""
+      }
+    },
+    {
+      "id": "6f92f618-38c4-5e03-b9a7-898beefd2b05",
+      "name": "One item per draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Turn jarvis.inbox output into one item per draft.\nconst out = JSON.parse($input.first().json.stdout || '[]');\nreturn out.map(d => ({ json: d }));"
+      }
+    },
+    {
+      "id": "0e3047ce-7191-5a59-a2d1-35552b7e18b5",
+      "name": "Create Gmail draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        540,
+        0
+      ],
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "sendTo": "={{ $json.to }}",
+          "threadId": "={{ $json.threadId }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "google-jarvis",
+          "name": "Google (Jarvis)"
+        }
+      }
+    },
+    {
+      "id": "d790c12c-d9b7-516c-9947-d83084161276",
+      "name": "Log to journal",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        760,
+        0
+      ],
+      "parameters": {
+        "command": "=cmd /c \"cd /d C:/Users/ajwal/Documents/Jarvis-AI && set PYTHONIOENCODING=utf-8:replace&& python -m jarvis.journal auto \"drafted reply: {{ $json.subject }}\"\""
+      }
+    }
+  ],
+  "connections": {
+    "11:00 + 16:00 weekdays": {
+      "main": [
+        [
+          {
+            "node": "Unread mail (24h)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unread mail (24h)": {
+      "main": [
+        [
+          {
+            "node": "Save inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save inbox": {
+      "main": [
+        [
+          {
+            "node": "Draft replies (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft replies (Python)": {
+      "main": [
+        [
+          {
+            "node": "One item per draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per draft": {
+      "main": [
+        [
+          {
+            "node": "Create Gmail draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Gmail draft": {
+      "main": [
+        [
+          {
+            "node": "Log to journal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {},
+  "tags": []
+}

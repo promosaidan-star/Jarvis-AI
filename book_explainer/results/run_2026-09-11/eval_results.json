@@ -1,0 +1,44 @@
+{
+  "run": "run_2026-09-11",
+  "positions": 45,
+  "metric1_draft_error_rate": {
+    "corrected": 20,
+    "rate": 0.4444,
+    "per_batch": {
+      "0": 6,
+      "1": 5,
+      "2": 4,
+      "3": 1,
+      "4": 4
+    },
+    "problems_total": 29,
+    "taxonomy": {
+      "ranking/ordering wrong": 8,
+      "count wrong": 7,
+      "direction word wrong": 4,
+      "unsupported company fact": 4,
+      "source mislabelled": 2,
+      "magnitude/arithmetic wrong": 2,
+      "headline/quote fidelity": 1,
+      "history/timeline wrong": 1
+    }
+  },
+  "metric2_guard": {
+    "draft_cards_flagged": 1,
+    "verified_cards_flagged": 0,
+    "draft_flags_by_check": {
+      "headline_truncated": 1
+    },
+    "verified_flags_by_check": {}
+  },
+  "metric3_hallucination": {
+    "draft": {
+      "news_quote_pass": "44/45",
+      "company_fact_pass": "29/45"
+    },
+    "verified": {
+      "news_quote_pass": "45/45",
+      "company_fact_pass": "33/45"
+    }
+  }
+}

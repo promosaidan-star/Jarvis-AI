@@ -1,0 +1,21 @@
+# secrets
+.env
+*.env
+# runtime output (personal: inbox dumps, drafts, journal, generated decks)
+inbox/
+out/
+journal/
+runs/
+# n8n local state
+*.sqlite
+n8n/*.log
+# licensed / raw book data never goes in a public repo
+book_explainer/run_*/
+book_explainer/results/book_*.json
+book_explainer/results/explain_*.json
+book_explainer/results/webhook_*.json
+book_explainer/results/run_*/ask_answers.json
+book_explainer/results/run_*/rating/KEY_do_not_open.json
+__pycache__/
+*.pyc
+.DS_Store
