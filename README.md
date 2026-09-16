@@ -103,3 +103,7 @@ journal/ inbox/ out/   runtime files, git-ignored
 - Alpaca: paper account, and the module imports only read calls (account, positions, history).
 - Spotify: creating a playlist is an explicit `--playlist` flag / button, private by default.
 - Keys live in `.env`, which is git-ignored; the workflow JSON references credentials by name.
+
+## For agents
+
+Start with [`HANDOFF.md`](HANDOFF.md): status, hard rules, how to verify.
