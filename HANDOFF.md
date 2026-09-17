@@ -16,6 +16,10 @@ A personal daily-ops assistant for one user (AJ, Cambridge MA, ET timezone). Thr
    `/jarvis/spotify`). The JSON contract is in that prompt; do not change it without
    changing `jarvis/api.py` in the same commit.
 
+`daily_digest/` is the team's course submission (Carrie's n8n **Cloud** workflow, v3): pure n8n
+nodes, no Execute Command, its own Data Table, its own `LOVABLE_PROMPT.md` and API workflow.
+A Lovable agent building *that* page must use `daily_digest/LOVABLE_PROMPT.md`, not `lovable/`.
+
 `book_explainer/` is a separate, finished course project with its own README; treat it as
 read-only reference unless asked.
 

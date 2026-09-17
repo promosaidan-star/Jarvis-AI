@@ -21,6 +21,7 @@ Alpaca account is **paper and read-only**, and nothing here places a trade.
 | PowerPoint slides | `jarvis.pptx_builder` from an outline or a topic (LLM drafts the outline) | working |
 | Spotify recommendations | your top artists → their tracks you have not played → optional private playlist | needs one-time `spotify auth` |
 | Ask Jarvis | n8n agent with `today` and `log` tools, for the dashboard chat | working |
+| Daily Digest (team build, n8n Cloud) | `daily_digest/`: v3 two-agent workflow, `GET /webhook/digest` API, `eval.py`, Lovable prompt | see `daily_digest/README.md` |
 | Book Explainer | the course project this grew out of: LLM writer → LLM verifier → deterministic guard | see `book_explainer/` |
 
 ## Quick start
@@ -92,6 +93,7 @@ The end-of-day report is built from it, and todos not marked done carry forward 
 jarvis/            the modules (each is a CLI: python -m jarvis.<name>)
 n8n/               build_workflows.py -> workflows/*.json (no credentials inside)
 lovable/           the front-end prompt + data contract
+daily_digest/      the team's Daily Digest workflow + eval + its own Lovable prompt (n8n Cloud)
 book_explainer/    the Book Explainer agent and its evaluation (own README)
 examples/          a slide outline to try
 journal/ inbox/ out/   runtime files, git-ignored
