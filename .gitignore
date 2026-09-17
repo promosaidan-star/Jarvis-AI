@@ -19,3 +19,5 @@ book_explainer/results/run_*/rating/KEY_do_not_open.json
 __pycache__/
 *.pyc
 .DS_Store
+daily_digest/*.msbai.json
+daily_digest/*.local.json

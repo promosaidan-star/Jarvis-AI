@@ -44,7 +44,7 @@ MORNING_SCHEMA = json.dumps({
                     "source_ref": {"type": "string",
                                    "description": "the subject line or the quoted phrase it came from"},
                     "who": {"type": "string", "description": "who is waiting on this"},
-                    "due": {"type": ["string", "null"], "description": "YYYY-MM-DD or null"},
+                    "due": {"type": "string", "description": "YYYY-MM-DD, or empty string if no date is stated (Gemini rejects union types)"},
                     "priority": {"type": "string", "enum": ["high", "normal", "low"]},
                 },
                 "required": ["task", "source", "source_ref", "who", "priority"],
