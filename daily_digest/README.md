@@ -43,6 +43,18 @@ long as the slide says so.
 Cut in this order if time runs out: confusion matrix, reliability check, then the
 `C_v3_notools` arm. Never cut the kappa or the injection test.
 
+## Status at the end of 2026-09-16 (see `results.md`, `runs/`, `labels.csv`)
+
+Done tonight on the live n8n Cloud project: seeded inbox (13 mails), morning run with tools
+(`B_v3`, 8 items, precision 0.88 / recall 1.00, one withdrawn item kept), Carrie's prose
+prompt on the same mail (`A_original`, hand-parsed, 5 items, precision 1.00 / recall 0.71),
+injection email ignored. Model note: Gemini's output schema cannot use union types, and
+flash-lite loops on `search_past_digests` once per name unless capped (fixed: tool budget in
+the prompt, maxIterations 25). **Not done:** `C_v3_notools` and the evening run — the shared
+Gemini key hit 429/503 after the third run. Both are one click each once quota returns
+(v3 workflow → Execute; for C, disconnect the three tools first). Kappa needs a second
+labeller on `labels.csv` (the `labeller` column), 15 minutes.
+
 See `PRESENTATION.md` for the 8-minute script.
 
 ## Why a front end at all

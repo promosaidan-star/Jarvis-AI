@@ -1,0 +1,14 @@
+config,digest_date,run_tag,item_id,task,source,source_ref,who,due,priority,label_is_action,label_priority,label_source_ok,labeller,notes
+A_original,2026-09-16,r1,2026-09-16-01,Confirm data table schema,email,Data table schema,Carrie,2026-09-16,high,1,high,1,AJW-claude,
+A_original,2026-09-16,r1,2026-09-16-02,Draft sponsor slides,email,Draft slides for the sponsor,Lei,,normal,1,normal,1,AJW-claude,
+A_original,2026-09-16,r1,2026-09-16-03,Book room for Friday retro,email,Room for Friday retro,Sam,2026-09-18,normal,1,normal,1,AJW-claude,
+A_original,2026-09-16,r1,2026-09-16-04,Decide on reference request,email,Reference check,Jordan,2026-09-20,normal,1,normal,1,AJW-claude,
+A_original,2026-09-16,r1,2026-09-16-05,Review parser PR,email,Re: parser PR,Priya,2026-09-17,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-01,Send the Q3 budget numbers to Alice before the 2pm review today,email,Q3 budget numbers?,Alice,2026-09-16,high,0,high,1,AJW-claude,withdrawn by later email
+B_v3,2026-09-16,r1,2026-09-16-02,Approve invoice #4471 in the portal today,email,Invoice #4471,"Dana, Finance",2026-09-16,high,1,high,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-03,Confirm the data table columns match v3 before Carrie imports it tonight,email,Data table schema,Carrie,2026-09-16,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-04,Respond regarding being a reference for Jordan's application (deadline Sept 20),email,Reference check,Jordan,2026-09-20,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-05,Countersign and return the NDA by end of week,email,Signed NDA,Morgan,2026-09-18,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-06,Draft 3 slides on the digest project for the sponsor call next week,email,Draft slides for the sponsor,Lei,,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-07,Book a room for Friday's retro,email,Room for Friday retro,Sam,,normal,1,normal,1,AJW-claude,
+B_v3,2026-09-16,r1,2026-09-16-08,Finish reviewing Priya's parser pull request by Thursday,email,parser PR,Priya,2026-09-17,normal,1,normal,1,AJW-claude,
